@@ -27,11 +27,15 @@ async fn main() {
         Ok(v) => {
             v.garages
         },
-        Err(e) => {
+        Err(_) => {
             println!("ERROR");
             return;
         }
     };
+
+    for garage in garages {
+        println!("{}\t{}/{}", garage.name, garage.spaces_filled, garage.max_spaces);
+    }
 }
 
 async fn build_ucf_garages_api_object() -> Result<UCFGaragesAPIData, RequestError> {
@@ -82,7 +86,7 @@ async fn extract_response_body_as_string(res: Response) -> Result<String, Reques
             return Ok(v)
         },
         Err(_) => {
-            return Err(RequestError::JSONParsingError);
+            return Err(RequestError::BodyExtractionError);
         }
     }
 }
