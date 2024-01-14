@@ -33,9 +33,14 @@ async fn main() {
         }
     };
 
+    print_garages_filled_and_total(&garages, "/");
+}
+
+fn print_garages_filled_and_total(garages: &Vec<Garage>, delimiter: &str) {
     for garage in garages {
-        println!("{}\t{}/{}", garage.name, garage.spaces_filled, garage.max_spaces);
+        println!("{}\t{}{delimiter}{}", garage.name, garage.spaces_filled, garage.max_spaces);
     }
+
 }
 
 async fn build_ucf_garages_api_object() -> Result<UCFGaragesAPIData, RequestError> {
