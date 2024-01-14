@@ -1,7 +1,11 @@
 use reqwest::Response;
 use serde::{Serialize, Deserialize};
 
-struct NoAPIResponseError();
+enum RequestError {
+    APIResponseError,
+    BodyExtractionError,
+    JSONParsingError
+}
 
 #[derive(Serialize, Deserialize)]
 struct Garage {
@@ -19,25 +23,82 @@ struct UCFGaragesAPIData {
 
 #[tokio::main]
 async fn main() {
-    print_data().await;
+    let garages = match build_ucf_garages_api_object().await {
+        Ok(v) => {
+            v.garages
+        },
+        Err(e) => {
+            println!("ERROR");
+            return;
+        }
+    };
 }
 
-async fn print_data() -> Result<(), NoAPIResponseError> {
-    let request_result = reqwest::get("https://api.ucfgarages.com/")
-        .await;
-    
-    let req: Response = match request_result {
-        Ok(req) => {
-            req
+async fn build_ucf_garages_api_object() -> Result<UCFGaragesAPIData, RequestError> {
+    let res = match create_ucf_parking_api_response().await {
+        Ok(v) => {
+            v
         },
-        Err(_) => {
-            return Err(NoAPIResponseError());
+        Err(e) => {
+            return Err(e);
         }
     };
 
-    let body = req.text().await.unwrap();
-    let data: UCFGaragesAPIData = serde_json::from_str(&body).unwrap();
-    println!("{} has {} spaces left", &data.garages[0].name, &data.garages[0].spaces_left);
+    let string_body = match extract_response_body_as_string(res).await {
+        Ok(v) => {
+            v
+        },
+        Err(e) => {
+            return Err(e);
+        }
+    };
 
-    Ok(())
+    let data = match create_ucf_garages_api_object(&string_body) {
+        Ok(v) => {
+            v
+        },
+        Err(e) => {
+            return Err(e);
+        }
+    };
+
+    Ok(data)
+}
+
+fn create_ucf_garages_api_object(body: &String) -> Result<UCFGaragesAPIData, RequestError> {
+    match serde_json::from_str(body) {
+        Ok(v) => {
+            return Ok(v)
+        },
+        Err(_) => {
+            return Err(RequestError::JSONParsingError)
+        }
+    };
+}
+
+async fn extract_response_body_as_string(res: Response) -> Result<String, RequestError> {
+    match res.text().await {
+        Ok(v) => {
+            return Ok(v)
+        },
+        Err(_) => {
+            return Err(RequestError::JSONParsingError);
+        }
+    }
+}
+
+async fn create_ucf_parking_api_response() -> Result<Response, RequestError> {
+    let request_result = 
+        reqwest::get("https://api.ucfgarages.com/")
+        .await;
+
+    match request_result {
+        Ok(req) => {
+            return Ok(req);
+        },
+        Err(_) => {
+            return Err(RequestError::APIResponseError);
+        }
+    };
+
 }
