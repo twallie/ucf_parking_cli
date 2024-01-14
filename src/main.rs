@@ -18,17 +18,19 @@ struct Garage {
 
 #[derive(Serialize, Deserialize)]
 struct UCFGaragesAPIData {
-    garages: Vec<Garage>
+    garages: GarageArray
 }
+
+type GarageArray = [Garage; 7];
 
 #[tokio::main]
 async fn main() {
-    let garages = match build_ucf_garages_api_object().await {
+    let garages: GarageArray = match build_ucf_garages_api_object().await {
         Ok(v) => {
             v.garages
         },
-        Err(_) => {
-            println!("ERROR");
+        Err(e) => {
+            print_error_message(e);
             return;
         }
     };
@@ -36,11 +38,24 @@ async fn main() {
     print_garages_filled_and_total(&garages, "/");
 }
 
-fn print_garages_filled_and_total(garages: &Vec<Garage>, delimiter: &str) {
+fn print_error_message(e: RequestError) {
+    match e {
+        RequestError::APIResponseError => {
+            println!("No response from API.");
+        },
+        RequestError::BodyExtractionError => {
+            println!("Couldn't parse API response body.");
+        },
+        RequestError::JSONParsingError => {
+            println!("Couldn't parse body into JSON.");
+        }
+    }
+}
+
+fn print_garages_filled_and_total(garages: &GarageArray, delimiter: &str) {
     for garage in garages {
         println!("{}\t{}{delimiter}{}", garage.name, garage.spaces_filled, garage.max_spaces);
     }
-
 }
 
 async fn build_ucf_garages_api_object() -> Result<UCFGaragesAPIData, RequestError> {
