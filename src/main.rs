@@ -25,12 +25,11 @@ type GarageArray = [Garage; 7];
 
 #[tokio::main]
 async fn main() {
-    let garages: GarageArray = match build_ucf_garages_api_object().await {
+    let garages: GarageArray = match build_garage_array(true).await {
         Ok(v) => {
-            v.garages
+            v
         },
-        Err(e) => {
-            print_error_message(e);
+        Err(_) => {
             return;
         }
     };
@@ -38,7 +37,22 @@ async fn main() {
     print_garages_filled_and_total(&garages, "/");
 }
 
-fn print_error_message(e: RequestError) {
+async fn build_garage_array(print_if_error: bool) -> Result<GarageArray, RequestError> {
+   return match build_ucf_garages_api_object().await {
+        Ok(v) => {
+            Ok(v.garages)
+        },
+        Err(e) => {
+            if print_if_error {
+                print_error_message(&e);
+            }
+            Err(e)
+        }
+    };
+ 
+}
+
+fn print_error_message(e: &RequestError) {
     match e {
         RequestError::APIResponseError => {
             println!("No response from API.");
